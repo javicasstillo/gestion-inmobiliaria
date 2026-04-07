@@ -13,7 +13,7 @@ export default function Sidebar({ page, onNavigate, onLogout, className = '' }) 
   return (
     <div className={`sidebar ${className}`}>
       <div className="sidebar-logo">
-        <h1>Inmuebles</h1>
+        <h1>Exodo</h1>
         <span>Gestión de propiedades</span>
       </div>
 
