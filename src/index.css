@@ -1,29 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
 
 :root {
-  --bg: #f0f4f8;
+  --bg: #f5f3fa;
   --bg2: #ffffff;
-  --bg3: #f0f4f8;
-  --bg4: #e8e5e0;
-  --border: #e0dbd4;
-  --border2: #ccc6be;
-  --text: #1a1714;
-  --text2: #0096fc;
-  --text3: #54514f;
-  --accent: #0096fc;
-  --accent2: #0096fc;
-  --accent-dim: rgba(0, 150, 252, 0.12);
-  --green: #0096fc;
-  --green-dim: rgba(0, 150, 252, 0.12);
+  --bg3: #ece9f5;
+  --bg4: #e2def0;
+
+  --border: #d1cbe3;
+  --border2: #b9b0d6;
+
+  --text: #1f1b2e;
+  --text2: #6c4ab6;
+  --text3: #5f5a73;
+
+  --accent: #6c4ab6;
+  --accent2: #8a6fd1;
+  --accent-dim: rgba(108, 74, 182, 0.12);
+
+  --green: #5e35b1;
+  --green-dim: rgba(94, 53, 177, 0.12);
+
   --red: #c0392b;
   --red-dim: rgba(192, 57, 43, 0.1);
-  --blue: #2e86c1;
-  --blue-dim: rgba(46, 134, 193, 0.12);
-  --yellow: #2e86c1;
-  --yellow-dim: rgba(46, 134, 193, 0.12);
+
+  --blue: #7e57c2;
+  --blue-dim: rgba(126, 87, 194, 0.12);
+
+  --yellow: #c0a84a;
+  --yellow-dim: rgba(192, 168, 74, 0.12);
+
   --radius: 10px;
   --radius-lg: 16px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow: 0 4px 24px rgba(60, 40, 120, 0.12);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
