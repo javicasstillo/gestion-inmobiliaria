@@ -206,6 +206,59 @@ tbody td { padding: 14px 16px; color: var(--text); font-size: 13px; }
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { padding: 4px 10px; background: var(--bg4); border-radius: 20px; font-size: 11px; color: var(--text3); }
 
+/* ── Sidebar violeta ─────────────────────────────────────────── */
+.sidebar {
+  background: #3d1f8a;
+  border-right: 1px solid #2e1668;
+}
+
+.sidebar-logo {
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo h1 {
+  color: #ffffff;
+}
+
+.sidebar-logo span {
+  color: rgba(255,255,255,0.45);
+}
+
+.sidebar-footer {
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-footer .nav-item {
+  color: rgba(255,255,255,0.72) !important;
+}
+
+.nav-section-label {
+  color: rgba(255,255,255,0.4);
+}
+
+.nav-item {
+  color: rgba(255,255,255,0.72);
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
+}
+
+.nav-item.active {
+  background: rgba(255,255,255,0.18);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.hamburger {
+  background: #3d1f8a;
+  border-color: #2e1668;
+  color: #ffffff;
+}
+
+
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
