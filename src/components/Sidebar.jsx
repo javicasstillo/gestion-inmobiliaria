@@ -1,4 +1,4 @@
-import { LayoutDashboard, Home, Users, FileText, DollarSign, Wrench, LogOut } from 'lucide-react';
+import { LayoutDashboard, Home, Users, FileText, DollarSign, LogOut } from 'lucide-react';
 
 const NAV = [
   { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
@@ -6,7 +6,6 @@ const NAV = [
   { id: 'tenants', label: 'Inquilinos', icon: Users },
   { id: 'contracts', label: 'Contratos', icon: FileText },
   { id: 'payments', label: 'Cobros', icon: DollarSign },
-  { id: 'expenses', label: 'Gastos', icon: Wrench },
 ];
 
 export default function Sidebar({ page, onNavigate, onLogout, className = '' }) {
@@ -32,7 +31,7 @@ export default function Sidebar({ page, onNavigate, onLogout, className = '' }) 
       </nav>
 
       <div className="sidebar-footer">
-        <button className="nav-item" onClick={onLogout} style={{ color: 'var(--red)', width: '100%' }}>
+        <button className="nav-item" onClick={onLogout} style={{ width: '100%' }}>
           <LogOut size={16} />
           Cerrar sesión
         </button>
