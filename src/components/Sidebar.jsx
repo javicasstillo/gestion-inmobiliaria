@@ -1,5 +1,4 @@
-import { LayoutDashboard, Home, Users, FileText, DollarSign, LogOut } from 'lucide-react';
-import { store } from '../store';
+import { LayoutDashboard, Home, Users, FileText, DollarSign, Wrench, LogOut } from 'lucide-react';
 
 const NAV = [
   { id: 'dashboard', label: 'Panel Principal', icon: LayoutDashboard },
@@ -7,11 +6,12 @@ const NAV = [
   { id: 'tenants', label: 'Inquilinos', icon: Users },
   { id: 'contracts', label: 'Contratos', icon: FileText },
   { id: 'payments', label: 'Cobros', icon: DollarSign },
+  { id: 'expenses', label: 'Gastos', icon: Wrench },
 ];
 
-export default function Sidebar({ page, onNavigate, onLogout }) {
+export default function Sidebar({ page, onNavigate, onLogout, className = '' }) {
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${className}`}>
       <div className="sidebar-logo">
         <h1>Inmuebles</h1>
         <span>Gestión de propiedades</span>
