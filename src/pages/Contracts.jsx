@@ -1,10 +1,95 @@
 import { useState, useEffect, useRef } from 'react';
 import { contractsApi, propertiesApi, tenantsApi } from '../api';
-import { Plus, Search, FileText, Edit2, Trash2, X, AlertTriangle, Paperclip, Eye, Trash } from 'lucide-react';
+import { Plus, Search, FileText, Edit2, Trash2, X, AlertTriangle, Paperclip, Eye, Trash, Download } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 const INDICES = ['ICL','IPC','CasaPropia','CAC','CER','IS','IPIM','UVA','Otro'];
 const EMPTY = { propertyId: '', tenantId: '', startDate: '', endDate: '', monthlyRent: '', currency: 'ARS', depositMonths: '1', adjustIndex: 'ICL', adjustPeriod: 'trimestral', status: 'vigente', notes: '', docs: [] };
+
+function exportToPDF(contract, prop, tenant) {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Contrato — ${prop?.address || ''}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a2e; padding: 40px; }
+        .header { text-align: center; margin-bottom: 36px; border-bottom: 2px solid #3d1f8a; padding-bottom: 20px; }
+        .header h1 { font-size: 26px; color: #3d1f8a; letter-spacing: 2px; margin-bottom: 4px; }
+        .header p { color: #666; font-size: 12px; }
+        .section { margin-bottom: 24px; }
+        .section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #3d1f8a; border-bottom: 1px solid #e0d9f5; padding-bottom: 6px; margin-bottom: 14px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+        .item label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #888; display: block; margin-bottom: 2px; }
+        .item span { font-size: 13px; color: #1a1a2e; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #ede8fc; color: #3d1f8a; }
+        .notes { background: #f5f3fa; border-radius: 8px; padding: 14px; font-size: 13px; color: #444; line-height: 1.6; }
+        .footer { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+        .firma { border-top: 1px solid #ccc; padding-top: 8px; text-align: center; font-size: 11px; color: #888; }
+        @media print { body { padding: 20px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>CONTRATO DE ALQUILER</h1>
+        <p>Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Propiedad</div>
+        <div class="grid">
+          <div class="item"><label>Dirección</label><span>${prop?.address || '—'}</span></div>
+          <div class="item"><label>Tipo</label><span>${prop?.type || '—'}</span></div>
+          <div class="item"><label>Barrio / Zona</label><span>${prop?.neighborhood || '—'}</span></div>
+          <div class="item"><label>Superficie</label><span>${prop?.area ? prop.area + ' m²' : '—'}</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Inquilino</div>
+        <div class="grid">
+          <div class="item"><label>Nombre</label><span>${tenant?.name || '—'}</span></div>
+          <div class="item"><label>DNI / CUIT</label><span>${tenant?.dni || '—'}</span></div>
+          <div class="item"><label>Teléfono</label><span>${tenant?.phone || '—'}</span></div>
+          <div class="item"><label>Email</label><span>${tenant?.email || '—'}</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Condiciones del contrato</div>
+        <div class="grid">
+          <div class="item"><label>Fecha inicio</label><span>${contract.startDate || '—'}</span></div>
+          <div class="item"><label>Fecha fin</label><span>${contract.endDate || '—'}</span></div>
+          <div class="item"><label>Alquiler mensual</label><span>${fmt(contract.monthlyRent)} ${contract.currency}</span></div>
+          <div class="item"><label>Depósito</label><span>${contract.depositMonths} ${contract.depositMonths == 1 ? 'mes' : 'meses'}</span></div>
+          <div class="item"><label>Índice de ajuste</label><span>${contract.adjustIndex || '—'}</span></div>
+          <div class="item"><label>Periodicidad</label><span>${contract.adjustPeriod || '—'}</span></div>
+          <div class="item"><label>Estado</label><span class="badge">${contract.status}</span></div>
+        </div>
+      </div>
+
+      ${contract.notes ? `
+      <div class="section">
+        <div class="section-title">Notas y observaciones</div>
+        <div class="notes">${contract.notes}</div>
+      </div>` : ''}
+
+      <div class="footer">
+        <div class="firma">Firma del propietario</div>
+        <div class="firma">Firma del inquilino — ${tenant?.name || ''}</div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 500);
+}
 
 function DocUploader({ docs = [], onChange }) {
   const ref = useRef();
@@ -159,7 +244,13 @@ export default function Contracts() {
                       <td><span className={`badge badge-${statusBadge(c.status)}`}>{c.status}</span></td>
                       <td>{expiring ? <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--accent)', fontSize: 12 }}><AlertTriangle size={12} /> {days}d</span> : <span style={{ color: 'var(--text3)', fontSize: 12 }}>{days !== null ? (days > 0 ? `${days}d` : 'Vencido') : '—'}</span>}</td>
                       <td>{(c.docs?.length || 0) > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--accent)' }}><Paperclip size={12} />{c.docs.length}</span> : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}</td>
-                      <td><div style={{ display: 'flex', gap: 6 }}><button className="btn btn-sm btn-secondary" onClick={() => setModal(c)}><Edit2 size={12} /></button><button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)}><Trash2 size={12} /></button></div></td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className="btn btn-sm btn-secondary" title="Exportar PDF" onClick={() => exportToPDF(c, getProp(c.propertyId), getTenant(c.tenantId))}><Download size={12} /></button>
+                          <button className="btn btn-sm btn-secondary" onClick={() => setModal(c)}><Edit2 size={12} /></button>
+                          <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)}><Trash2 size={12} /></button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
