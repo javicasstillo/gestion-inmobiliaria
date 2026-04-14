@@ -12,7 +12,7 @@ export default function Sidebar({ page, onNavigate, onLogout, className = '' }) 
   return (
     <div className={`sidebar ${className}`}>
       <div className="sidebar-logo">
-        <h1>Noelia Propiedades</h1>
+        <h1>Propiedades Noelia</h1>
         <span>Gestión de propiedades</span>
       </div>
 

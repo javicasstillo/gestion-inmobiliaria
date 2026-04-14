@@ -25,7 +25,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card fade-up">
         <div className="login-logo">
-          <h1>Exodo</h1>
+          <h1>Propiedades Noelia</h1>
           <p>Gestión de propiedades</p>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
