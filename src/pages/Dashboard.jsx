@@ -1,8 +1,38 @@
 import { useState, useEffect } from 'react';
 import { propertiesApi, tenantsApi, contractsApi, paymentsApi } from '../api';
-import { Home, Users, TrendingUp, DollarSign, AlertTriangle, Clock } from 'lucide-react';
+import { Home, Users, TrendingUp, DollarSign, AlertTriangle, Clock, Bell } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
+
+function getProximoAjuste(contract) {
+  if (!contract.startDate || !contract.adjustPeriod) return null;
+
+  const periodoMeses = {
+    'mensual': 1,
+    'bimestral': 2,
+    'trimestral': 3,
+    'cuatrimestral': 4,
+    'semestral': 6,
+    'anual': 12,
+  }[contract.adjustPeriod];
+
+  if (!periodoMeses) return null;
+
+  const inicio = new Date(contract.startDate + 'T12:00:00');
+  const hoy = new Date();
+
+  // Buscar el próximo ajuste iterando desde el inicio
+  let proximoAjuste = new Date(inicio);
+  proximoAjuste.setMonth(proximoAjuste.getMonth() + periodoMeses);
+
+  // Avanzar hasta encontrar el próximo ajuste que sea futuro
+  while (proximoAjuste <= hoy) {
+    proximoAjuste.setMonth(proximoAjuste.getMonth() + periodoMeses);
+  }
+
+  const diasRestantes = Math.ceil((proximoAjuste - hoy) / 86400000);
+  return { fecha: proximoAjuste.toISOString().split('T')[0], dias: diasRestantes };
+}
 
 export default function Dashboard() {
   const [properties, setProperties] = useState([]);
@@ -19,21 +49,32 @@ export default function Dashboard() {
   }, []);
 
   const vigentes = contracts.filter(c => c.status === 'vigente');
+  console.log('contratos:', contracts);
+console.log('vigentes:', vigentes);
+console.log('ajustes calculados:', vigentes.map(c => ({ id: c.id, startDate: c.startDate, adjustPeriod: c.adjustPeriod, ajuste: getProximoAjuste(c) })));
   const ingresosMes = vigentes.reduce((a, c) => a + Number(c.monthlyRent || 0), 0);
   const pagados = payments.filter(p => p.status === 'pagado').length;
   const pendientes = payments.filter(p => p.status === 'pendiente').length;
   const vencidos = payments.filter(p => p.status === 'vencido').length;
 
   const today = new Date();
+
   const expiring = contracts.filter(c => {
     if (c.status !== 'vigente' || !c.endDate) return false;
     const days = (new Date(c.endDate) - today) / 86400000;
     return days >= 0 && days <= 60;
   });
+
   const pendingPayments = payments.filter(p => p.status === 'pendiente' || p.status === 'vencido');
+
+  const proximosAjustes = vigentes
+    .map(c => ({ contract: c, ajuste: getProximoAjuste(c) }))
+    .filter(({ ajuste }) => ajuste && ajuste.dias >= 0 && ajuste.dias <= 15);
 
   const getProp = (id) => properties.find(p => p.id === id);
   const getTenant = (id) => tenants.find(t => t.id === id);
+
+  const hayAlertas = expiring.length > 0 || pendingPayments.length > 0 || proximosAjustes.length > 0;
 
   return (
     <>
@@ -70,23 +111,42 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {(expiring.length > 0 || pendingPayments.length > 0) && (
+        {hayAlertas && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+
+            {proximosAjustes.map(({ contract: c, ajuste }) => {
+              const prop = getProp(c.propertyId);
+              const tenant = getTenant(c.tenantId);
+              return (
+                <div key={`ajuste-${c.id}`} className="alert alert-warning">
+                  <Bell size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    Ajuste por <strong>{c.adjustIndex}</strong> ({c.adjustPeriod}) en{' '}
+                    <strong>{ajuste.dias === 0 ? 'hoy' : `${ajuste.dias} día${ajuste.dias !== 1 ? 's' : ''}`}</strong>
+                    {' — '}<strong>{prop?.address?.split(',')[0]}</strong>
+                    {tenant ? ` — ${tenant.name}` : ''}
+                    {' ('}{ajuste.fecha}{')'}
+                  </span>
+                </div>
+              );
+            })}
+
             {expiring.map(c => {
               const prop = getProp(c.propertyId);
               const days = Math.ceil((new Date(c.endDate) - today) / 86400000);
               return (
-                <div key={c.id} className="alert alert-warning">
+                <div key={`venc-${c.id}`} className="alert alert-warning">
                   <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>Contrato de <strong>{prop?.address}</strong> vence en {days} días ({c.endDate})</span>
                 </div>
               );
             })}
+
             {pendingPayments.map(p => {
               const prop = getProp(p.propertyId);
               const tenant = getTenant(p.tenantId);
               return (
-                <div key={p.id} className="alert alert-danger">
+                <div key={`pago-${p.id}`} className="alert alert-danger">
                   <Clock size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>Pago pendiente: <strong>{prop?.address}</strong> — {tenant?.name} — {p.month}</span>
                 </div>
