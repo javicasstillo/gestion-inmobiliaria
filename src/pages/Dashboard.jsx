@@ -69,7 +69,7 @@ console.log('ajustes calculados:', vigentes.map(c => ({ id: c.id, startDate: c.s
 
   const proximosAjustes = vigentes
     .map(c => ({ contract: c, ajuste: getProximoAjuste(c) }))
-    .filter(({ ajuste }) => ajuste && ajuste.dias >= 0 && ajuste.dias <= 15);
+    .filter(({ ajuste }) => ajuste && ajuste.dias >= 0 && ajuste.dias <= 30)
 
   const getProp = (id) => properties.find(p => p.id === id);
   const getTenant = (id) => tenants.find(t => t.id === id);

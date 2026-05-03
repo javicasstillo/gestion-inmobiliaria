@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { contractsApi, propertiesApi, tenantsApi } from '../api';
 import { Plus, Search, FileText, Edit2, Trash2, X, AlertTriangle, Paperclip, Eye, Trash, Download } from 'lucide-react';
+import firmaPropietario from '../assets/firma.png';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 const INDICES = ['ICL','IPC','CasaPropia','CAC','CER','IS','IPIM','UVA','Otro'];
@@ -77,8 +78,13 @@ function exportToPDF(contract, prop, tenant) {
       </div>` : ''}
 
       <div class="footer">
-        <div class="firma">Firma del propietario</div>
-        <div class="firma">Firma del inquilino — ${tenant?.name || ''}</div>
+        <div class="firma">
+          <img src="${firmaPropietario}" style="height: 60px; object-fit: contain; margin-bottom: 8px;" /><br/>
+          Firma del propietario
+        </div>
+        <div class="firma" style="padding-top: 68px;">
+          Firma del inquilino — ${tenant?.name || ''}
+        </div>
       </div>
     </body>
     </html>
