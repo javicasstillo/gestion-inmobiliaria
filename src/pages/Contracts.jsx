@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { contractsApi, propertiesApi, tenantsApi } from '../api';
 import { Plus, Search, FileText, Edit2, Trash2, X, AlertTriangle, Paperclip, Eye, Trash, Download } from 'lucide-react';
-import firmaPropietario from '../assets/firma.png';
+import firmaPropietario from '../assets/firma.webp';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 const INDICES = ['ICL','IPC','CasaPropia','CAC','CER','IS','IPIM','UVA','Otro'];
 const EMPTY = { propertyId: '', tenantId: '', startDate: '', endDate: '', monthlyRent: '', currency: 'ARS', depositMonths: '1', adjustIndex: 'ICL', adjustPeriod: 'trimestral', status: 'vigente', notes: '', docs: [] };
+
+function downloadDocs(docs, prop) {
+  if (!docs || docs.length === 0) { alert('Este contrato no tiene papelería adjunta'); return; }
+  docs.forEach((doc, i) => {
+    const link = document.createElement('a');
+    link.href = doc.data;
+    const ext = doc.name.split('.').pop() || 'jpg';
+    link.download = `${prop?.address?.split(',')[0] || 'contrato'}_doc${i + 1}.${ext}`;
+    link.click();
+  });
+}
 
 function exportToPDF(contract, prop, tenant) {
   const html = `
@@ -80,7 +91,7 @@ function exportToPDF(contract, prop, tenant) {
       <div class="footer">
         <div class="firma">
           <img src="${firmaPropietario}" style="height: 60px; object-fit: contain; margin-bottom: 8px;" /><br/>
-          Firma del propietario
+          Firma del administrador
         </div>
         <div class="firma" style="padding-top: 68px;">
           Firma del inquilino — ${tenant?.name || ''}
@@ -252,7 +263,15 @@ export default function Contracts() {
                       <td>{(c.docs?.length || 0) > 0 ? <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--accent)' }}><Paperclip size={12} />{c.docs.length}</span> : <span style={{ color: 'var(--text3)', fontSize: 12 }}>—</span>}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <button className="btn btn-sm btn-secondary" title="Exportar PDF" onClick={() => exportToPDF(c, getProp(c.propertyId), getTenant(c.tenantId))}><Download size={12} /></button>
+                          <button className="btn btn-sm btn-secondary" title="Exportar contrato PDF" onClick={() => exportToPDF(c, getProp(c.propertyId), getTenant(c.tenantId))}><Download size={12} /></button>
+                          <button
+                            className="btn btn-sm btn-secondary"
+                            title={`Descargar papelería (${c.docs?.length || 0} archivos)`}
+                            onClick={() => downloadDocs(c.docs, getProp(c.propertyId))}
+                            style={{ opacity: (c.docs?.length || 0) === 0 ? 0.4 : 1 }}
+                          >
+                            <Paperclip size={12} />
+                          </button>
                           <button className="btn btn-sm btn-secondary" onClick={() => setModal(c)}><Edit2 size={12} /></button>
                           <button className="btn btn-sm btn-danger" onClick={() => handleDelete(c.id)}><Trash2 size={12} /></button>
                         </div>
