@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { contractsApi, propertiesApi, tenantsApi } from '../api';
 import { Plus, Search, FileText, Edit2, Trash2, X, AlertTriangle, Paperclip, Eye, Trash, Download } from 'lucide-react';
 import firmaPropietario from '../assets/firma.webp';
+import { jsPDF } from 'jspdf';
+
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 const INDICES = ['ICL','IPC','CasaPropia','CAC','CER','IS','IPIM','UVA','Otro'];
@@ -19,93 +21,122 @@ function downloadDocs(docs, prop) {
 }
 
 function exportToPDF(contract, prop, tenant) {
-  const html = `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Contrato — ${prop?.address || ''}</title>
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a2e; padding: 40px; }
-        .header { text-align: center; margin-bottom: 36px; border-bottom: 2px solid #3d1f8a; padding-bottom: 20px; }
-        .header h1 { font-size: 26px; color: #3d1f8a; letter-spacing: 2px; margin-bottom: 4px; }
-        .header p { color: #666; font-size: 12px; }
-        .section { margin-bottom: 24px; }
-        .section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #3d1f8a; border-bottom: 1px solid #e0d9f5; padding-bottom: 6px; margin-bottom: 14px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
-        .item label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #888; display: block; margin-bottom: 2px; }
-        .item span { font-size: 13px; color: #1a1a2e; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #ede8fc; color: #3d1f8a; }
-        .notes { background: #f5f3fa; border-radius: 8px; padding: 14px; font-size: 13px; color: #444; line-height: 1.6; }
-        .footer { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
-        .firma { border-top: 1px solid #ccc; padding-top: 8px; text-align: center; font-size: 11px; color: #888; }
-        @media print { body { padding: 20px; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>CONTRATO DE ALQUILER</h1>
-        <p>Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
-      </div>
+  const doc = new jsPDF();
+  const purple = [61, 31, 138];
+  const gray = [120, 120, 120];
+  const dark = [26, 26, 46];
+  const lightPurple = [245, 243, 250];
 
-      <div class="section">
-        <div class="section-title">Propiedad</div>
-        <div class="grid">
-          <div class="item"><label>Dirección</label><span>${prop?.address || '—'}</span></div>
-          <div class="item"><label>Tipo</label><span>${prop?.type || '—'}</span></div>
-          <div class="item"><label>Barrio / Zona</label><span>${prop?.neighborhood || '—'}</span></div>
-          <div class="item"><label>Superficie</label><span>${prop?.area ? prop.area + ' m²' : '—'}</span></div>
-        </div>
-      </div>
+  const pageW = doc.internal.pageSize.getWidth();
 
-      <div class="section">
-        <div class="section-title">Inquilino</div>
-        <div class="grid">
-          <div class="item"><label>Nombre</label><span>${tenant?.name || '—'}</span></div>
-          <div class="item"><label>DNI / CUIT</label><span>${tenant?.dni || '—'}</span></div>
-          <div class="item"><label>Teléfono</label><span>${tenant?.phone || '—'}</span></div>
-          <div class="item"><label>Email</label><span>${tenant?.email || '—'}</span></div>
-        </div>
-      </div>
+  // ── HEADER ──────────────────────────────────────────────
+  doc.setFillColor(...purple);
+  doc.rect(0, 0, pageW, 28, 'F');
 
-      <div class="section">
-        <div class="section-title">Condiciones del contrato</div>
-        <div class="grid">
-          <div class="item"><label>Fecha inicio</label><span>${contract.startDate || '—'}</span></div>
-          <div class="item"><label>Fecha fin</label><span>${contract.endDate || '—'}</span></div>
-          <div class="item"><label>Alquiler mensual</label><span>${fmt(contract.monthlyRent)} ${contract.currency}</span></div>
-          <div class="item"><label>Depósito</label><span>${contract.depositMonths} ${contract.depositMonths == 1 ? 'mes' : 'meses'}</span></div>
-          <div class="item"><label>Índice de ajuste</label><span>${contract.adjustIndex || '—'}</span></div>
-          <div class="item"><label>Periodicidad</label><span>${contract.adjustPeriod || '—'}</span></div>
-          <div class="item"><label>Estado</label><span class="badge">${contract.status}</span></div>
-        </div>
-      </div>
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CONTRATO DE ALQUILER', pageW / 2, 16, { align: 'center' });
 
-      ${contract.notes ? `
-      <div class="section">
-        <div class="section-title">Notas y observaciones</div>
-        <div class="notes">${contract.notes}</div>
-      </div>` : ''}
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+    pageW / 2, 23, { align: 'center' }
+  );
 
-      <div class="footer">
-        <div class="firma">
-          <img src="${firmaPropietario}" style="height: 60px; object-fit: contain; margin-bottom: 8px;" /><br/>
-          Firma del administrador
-        </div>
-        <div class="firma" style="padding-top: 68px;">
-          Firma del inquilino — ${tenant?.name || ''}
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  let y = 38;
 
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 500);
+  // ── SECCIÓN ──────────────────────────────────────────────
+  const section = (title) => {
+    doc.setFillColor(...lightPurple);
+    doc.rect(14, y, pageW - 28, 7, 'F');
+    doc.setTextColor(...purple);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title.toUpperCase(), 17, y + 5);
+    y += 12;
+  };
+
+  // ── FILA DE DATOS ────────────────────────────────────────
+  const row = (label, value, x = 17, col2 = false) => {
+    doc.setTextColor(...gray);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, x, y);
+
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(value || '—'), x, y + 5);
+
+    if (!col2) y += 14;
+  };
+
+  const twoCol = (l1, v1, l2, v2) => {
+    row(l1, v1, 17, true);
+    row(l2, v2, pageW / 2 + 5, true);
+    y += 14;
+  };
+
+  // ── PROPIEDAD ────────────────────────────────────────────
+  section('Propiedad');
+  twoCol('Dirección', prop?.address, 'Tipo', prop?.type);
+  twoCol('Barrio / Zona', prop?.neighborhood, 'Superficie', prop?.area ? `${prop.area} m²` : '—');
+
+  // ── INQUILINO ────────────────────────────────────────────
+  section('Inquilino');
+  twoCol('Nombre completo', tenant?.name, 'DNI / CUIT', tenant?.dni);
+  twoCol('Teléfono', tenant?.phone, 'Email', tenant?.email);
+
+  // ── CONDICIONES ──────────────────────────────────────────
+  section('Condiciones del contrato');
+  twoCol('Fecha inicio', contract.startDate, 'Fecha fin', contract.endDate);
+  twoCol(
+    'Alquiler mensual',
+    `${new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(contract.monthlyRent || 0)} ${contract.currency}`,
+    'Depósito',
+    `${contract.depositMonths} ${contract.depositMonths == 1 ? 'mes' : 'meses'}`
+  );
+  twoCol('Índice de ajuste', contract.adjustIndex, 'Periodicidad', contract.adjustPeriod);
+  row('Estado', contract.status?.toUpperCase());
+
+  // ── NOTAS ────────────────────────────────────────────────
+  if (contract.notes) {
+    section('Notas y observaciones');
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(contract.notes, pageW - 34);
+    doc.text(lines, 17, y);
+    y += lines.length * 6 + 8;
+  }
+
+  // ── FIRMAS ───────────────────────────────────────────────
+  y = Math.max(y, 220);
+
+  // Líneas de firma
+  doc.setDrawColor(...purple);
+  doc.setLineWidth(0.5);
+  doc.line(17, y + 20, 85, y + 20);
+  doc.line(pageW / 2 + 5, y + 20, pageW - 14, y + 20);
+
+  // Firma propietario (imagen)
+  try {
+    doc.addImage(firmaPropietario, 'PNG', 17, y - 15, 50, 25);
+  } catch (e) {
+    console.warn('No se pudo cargar la firma:', e);
+  }
+
+  doc.setTextColor(...gray);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Firma del propietario', 17, y + 26);
+  doc.text(`Firma del inquilino — ${tenant?.name || ''}`, pageW / 2 + 5, y + 26);
+
+  // ── GUARDAR ──────────────────────────────────────────────
+  const filename = `contrato_${prop?.address?.split(',')[0]?.replace(/\s+/g, '_') || 'propiedad'}_${tenant?.name?.replace(/\s+/g, '_') || 'inquilino'}.pdf`;
+  doc.save(filename);
 }
 
 function DocUploader({ docs = [], onChange }) {
