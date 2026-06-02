@@ -137,7 +137,7 @@ function exportToPDF(contract, prop, tenant) {
   // ── GUARDAR ──────────────────────────────────────────────
   const filename = `contrato_${prop?.address?.split(',')[0]?.replace(/\s+/g, '_') || 'propiedad'}_${tenant?.name?.replace(/\s+/g, '_') || 'inquilino'}.pdf`;
   doc.save(filename);
-}
+}   
 
 function DocUploader({ docs = [], onChange }) {
   const ref = useRef();
