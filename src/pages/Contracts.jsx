@@ -131,7 +131,7 @@ function exportToPDF(contract, prop, tenant) {
   doc.setTextColor(...gray);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Firma del propietario', 17, y + 26);
+  doc.text('Firma del administrador', 17, y + 26);
   doc.text(`Firma del inquilino — ${tenant?.name || ''}`, pageW / 2 + 5, y + 26);
 
   // ── GUARDAR ──────────────────────────────────────────────

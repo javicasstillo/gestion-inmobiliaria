@@ -1,120 +1,164 @@
 import { useState, useEffect } from 'react';
 import { paymentsApi, contractsApi, propertiesApi, tenantsApi } from '../api';
 import { Plus, Search, DollarSign, Edit2, Trash2, X, CheckCircle, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import firmaPropietario from '../assets/firma.webp';
 
 const fmt = (n) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(n || 0);
 const EMPTY = { contractId: '', propertyId: '', tenantId: '', month: '', dueDate: '', paidDate: '', amount: '', currency: 'ARS', status: 'pendiente', notes: '' };
 
 function exportReciboPDF(payment, prop, tenant) {
-  const html = `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-      <meta charset="UTF-8">
-      <title>Recibo — ${prop?.address || ''} — ${payment.month}</title>
-      <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a2e; padding: 40px; }
+  const doc = new jsPDF();
+  const purple = [61, 31, 138];
+  const gray = [120, 120, 120];
+  const dark = [26, 26, 46];
+  const lightPurple = [245, 243, 250];
+  const green = [46, 125, 50];
+  const lightGreen = [232, 245, 233];
+  const pageW = doc.internal.pageSize.getWidth();
 
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #3d1f8a; }
-        .header-left h1 { font-size: 28px; color: #3d1f8a; letter-spacing: 2px; margin-bottom: 4px; }
-        .header-left p { color: #888; font-size: 12px; }
-        .header-right { text-align: right; }
-        .header-right .recibo-num { font-size: 13px; color: #3d1f8a; font-weight: 700; }
-        .header-right .fecha { font-size: 12px; color: #888; margin-top: 4px; }
+  // ── HEADER ──────────────────────────────────────────────
+  doc.setFillColor(...purple);
+  doc.rect(0, 0, pageW, 28, 'F');
 
-        .estado { display: inline-block; background: #e8f5e9; color: #2e7d32; border-radius: 20px; padding: 4px 16px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 28px; }
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RECIBO DE ALQUILER', pageW / 2, 14, { align: 'center' });
 
-        .section { margin-bottom: 24px; }
-        .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #3d1f8a; border-bottom: 1px solid #e0d9f5; padding-bottom: 6px; margin-bottom: 14px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 32px; }
-        .item label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #999; display: block; margin-bottom: 2px; }
-        .item span { font-size: 13px; color: #1a1a2e; }
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Comprobante de pago', pageW / 2, 22, { align: 'center' });
 
-        .monto-box { background: #f5f3fa; border: 2px solid #3d1f8a; border-radius: 12px; padding: 20px 28px; margin: 28px 0; display: flex; justify-content: space-between; align-items: center; }
-        .monto-box .label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #3d1f8a; }
-        .monto-box .valor { font-size: 32px; font-weight: 900; color: #3d1f8a; letter-spacing: 1px; }
+  // Período y fecha arriba a la derecha
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.text(`Período: ${payment.month || '—'}`, pageW - 14, 10, { align: 'right' });
+  doc.text(`Fecha de pago: ${payment.paidDate || '—'}`, pageW - 14, 16, { align: 'right' });
 
-        .notes { background: #f5f3fa; border-radius: 8px; padding: 14px; font-size: 13px; color: #555; line-height: 1.6; }
+  let y = 36;
 
-        .footer { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
-        .firma { border-top: 1px solid #ccc; padding-top: 10px; text-align: center; font-size: 11px; color: #999; }
+  // ── BADGE PAGADO ─────────────────────────────────────────
+  doc.setFillColor(...lightGreen);
+  doc.roundedRect(14, y, 32, 8, 2, 2, 'F');
+  doc.setTextColor(...green);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('✓ PAGADO', 30, y + 5.5, { align: 'center' });
 
-        .watermark { text-align: center; margin-top: 40px; font-size: 10px; color: #ccc; letter-spacing: 2px; text-transform: uppercase; }
+  y += 16;
 
-        @media print { body { padding: 24px; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="header-left">
-          <h1>RECIBO DE ALQUILER</h1>
-          <p>Comprobante de pago</p>
-        </div>
-        <div class="header-right">
-          <div class="recibo-num">Período: ${payment.month || '—'}</div>
-          <div class="fecha">Fecha de pago: ${payment.paidDate || '—'}</div>
-        </div>
-      </div>
+  // ── CAJA DE MONTO ────────────────────────────────────────
+  doc.setFillColor(...lightPurple);
+  doc.setDrawColor(...purple);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(14, y, pageW - 28, 22, 3, 3, 'FD');
 
-      <div class="estado">✓ Pagado</div>
+  doc.setTextColor(...purple);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTAL ABONADO', 22, y + 8);
 
-      <div class="monto-box">
-        <div class="label">Total abonado</div>
-        <div class="valor">${fmt(payment.amount)} <span style="font-size:16px;font-weight:400">${payment.currency}</span></div>
-      </div>
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${fmt(payment.amount)} ${payment.currency}`, pageW - 22, y + 14, { align: 'right' });
 
-      <div class="section">
-        <div class="section-title">Propiedad</div>
-        <div class="grid">
-          <div class="item"><label>Dirección</label><span>${prop?.address || '—'}</span></div>
-          <div class="item"><label>Tipo</label><span>${prop?.type || '—'}</span></div>
-          <div class="item"><label>Barrio / Zona</label><span>${prop?.neighborhood || '—'}</span></div>
-          <div class="item"><label>Superficie</label><span>${prop?.area ? prop.area + ' m²' : '—'}</span></div>
-        </div>
-      </div>
+  y += 30;
 
-      <div class="section">
-        <div class="section-title">Inquilino</div>
-        <div class="grid">
-          <div class="item"><label>Nombre</label><span>${tenant?.name || '—'}</span></div>
-          <div class="item"><label>DNI / CUIT</label><span>${tenant?.dni || '—'}</span></div>
-          <div class="item"><label>Teléfono</label><span>${tenant?.phone || '—'}</span></div>
-          <div class="item"><label>Email</label><span>${tenant?.email || '—'}</span></div>
-        </div>
-      </div>
+  // ── HELPER: SECCIÓN ───────────────────────────────────────
+  const section = (title) => {
+    doc.setFillColor(...lightPurple);
+    doc.rect(14, y, pageW - 28, 7, 'F');
+    doc.setTextColor(...purple);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title.toUpperCase(), 17, y + 5);
+    y += 12;
+  };
 
-      <div class="section">
-        <div class="section-title">Detalle del pago</div>
-        <div class="grid">
-          <div class="item"><label>Período</label><span>${payment.month || '—'}</span></div>
-          <div class="item"><label>Fecha de vencimiento</label><span>${payment.dueDate || '—'}</span></div>
-          <div class="item"><label>Fecha de pago</label><span>${payment.paidDate || '—'}</span></div>
-          <div class="item"><label>Moneda</label><span>${payment.currency}</span></div>
-        </div>
-      </div>
+  const twoCol = (l1, v1, l2, v2) => {
+    doc.setTextColor(...gray);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(l1, 17, y);
+    doc.text(l2, pageW / 2 + 5, y);
 
-      ${payment.notes ? `
-      <div class="section">
-        <div class="section-title">Observaciones</div>
-        <div class="notes">${payment.notes}</div>
-      </div>` : ''}
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(v1 || '—'), 17, y + 5);
+    doc.text(String(v2 || '—'), pageW / 2 + 5, y + 5);
+    y += 14;
+  };
 
-      <div class="footer">
-        <div class="firma">Firma del propietario</div>
-        <div class="firma">Firma del inquilino — ${tenant?.name || ''}</div>
-      </div>
+  const oneRow = (label, value) => {
+    doc.setTextColor(...gray);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label, 17, y);
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+    doc.text(String(value || '—'), 17, y + 5);
+    y += 14;
+  };
 
-      <div class="watermark">Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-    </body>
-    </html>
-  `;
+  // ── PROPIEDAD ─────────────────────────────────────────────
+  section('Propiedad');
+  twoCol('Dirección', prop?.address, 'Tipo', prop?.type);
+  twoCol('Barrio / Zona', prop?.neighborhood, 'Superficie', prop?.area ? `${prop.area} m²` : '—');
 
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); }, 500);
+  // ── INQUILINO ─────────────────────────────────────────────
+  section('Inquilino');
+  twoCol('Nombre completo', tenant?.name, 'DNI / CUIT', tenant?.dni);
+  twoCol('Teléfono', tenant?.phone, 'Email', tenant?.email);
+
+  // ── DETALLE DEL PAGO ──────────────────────────────────────
+  section('Detalle del pago');
+  twoCol('Período', payment.month, 'Fecha de vencimiento', payment.dueDate);
+  twoCol('Fecha de pago', payment.paidDate, 'Moneda', payment.currency);
+
+  // ── NOTAS ─────────────────────────────────────────────────
+  if (payment.notes) {
+    section('Observaciones');
+    doc.setTextColor(...dark);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(payment.notes, pageW - 34);
+    doc.text(lines, 17, y);
+    y += lines.length * 6 + 8;
+  }
+
+  // ── FIRMAS ────────────────────────────────────────────────
+  y = Math.max(y, 220);
+
+  doc.setDrawColor(...purple);
+  doc.setLineWidth(0.5);
+  doc.line(17, y + 20, 85, y + 20);
+  doc.line(pageW / 2 + 5, y + 20, pageW - 14, y + 20);
+
+  try {
+    doc.addImage(firmaPropietario, 'PNG', 17, y - 15, 50, 25);
+  } catch (e) {
+    console.warn('No se pudo cargar la firma:', e);
+  }
+
+  doc.setTextColor(...gray);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Firma del administrador', 17, y + 26);
+  doc.text(`Firma del inquilino — ${tenant?.name || ''}`, pageW / 2 + 5, y + 26);
+
+  // ── WATERMARK ─────────────────────────────────────────────
+  doc.setTextColor(200, 200, 200);
+  doc.setFontSize(8);
+  doc.text(
+    `Generado el ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}`,
+    pageW / 2, 287, { align: 'center' }
+  );
+
+  // ── GUARDAR ───────────────────────────────────────────────
+  const filename = `recibo_${prop?.address?.split(',')[0]?.replace(/\s+/g, '_') || 'propiedad'}_${payment.month?.replace(/\s+/g, '_') || 'periodo'}.pdf`;
+  doc.save(filename);
 }
 
 function Modal({ payment, contracts, properties, tenants, onClose, onSave, saving }) {
@@ -246,7 +290,7 @@ export default function Payments() {
                             </button>
                           )}
                           {p.status === 'pagado' && (
-                            <button className="btn btn-sm btn-secondary" title="Descargar recibo" onClick={() => exportReciboPDF(p, getProp(p.propertyId), getTenant(p.tenantId))}>
+                            <button className="btn btn-sm btn-secondary" title="Descargar recibo PDF" onClick={() => exportReciboPDF(p, getProp(p.propertyId), getTenant(p.tenantId))}>
                               <Download size={12} />
                             </button>
                           )}
