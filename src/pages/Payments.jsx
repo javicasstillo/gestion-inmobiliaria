@@ -117,19 +117,24 @@ function exportReciboPDF(payment, prop, tenant) {
   twoCol('Período', payment.month, 'Fecha de vencimiento', payment.dueDate);
   twoCol('Fecha de pago', payment.paidDate, 'Moneda', payment.currency);
 
-  // ── NOTAS ─────────────────────────────────────────────────
-  if (payment.notes) {
-    section('Observaciones');
-    doc.setTextColor(...dark);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const lines = doc.splitTextToSize(payment.notes, pageW - 34);
-    doc.text(lines, 17, y);
-    y += lines.length * 6 + 8;
-  }
+ // ── NOTAS ─────────────────────────────────────────────────
+if (payment.notes) {
+  section('Observaciones');
+  doc.setTextColor(...dark);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const lines = doc.splitTextToSize(payment.notes, pageW - 34);
+  doc.text(lines, 17, y);
+  y += lines.length * 6 + 16;
+}
 
-  // ── FIRMAS ────────────────────────────────────────────────
-  y = Math.max(y, 220);
+// ── FIRMAS ────────────────────────────────────────────────
+// Si no entra en la página, crear una nueva
+if (y + 60 > 270) {
+  doc.addPage();
+  y = 20;
+}
+y = Math.max(y + 20, 220);
 
   doc.setDrawColor(...purple);
   doc.setLineWidth(0.5);
